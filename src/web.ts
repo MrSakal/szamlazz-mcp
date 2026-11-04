@@ -22,6 +22,7 @@ const ALLOWED_PCAPI: ReadonlySet<string> = new Set([
   "banktranz/list/byinterval", // bank transactions (CSV)
   "szfej/list",                // invoice list / search by number
   "szfej/get/byid",            // invoice header (JSON) or its PDF
+  "szfej/get/databyid",        // invoice data as a PDF (the only PDF for incoming invoices)
   "sztet/list/byszfejid",      // invoice line items
   "nyfej/list/all",            // receipt list / search by number
   "nyfej/get/byid",            // receipt data

@@ -98,14 +98,15 @@ export function createServer(): McpServer {
     "when no company is given. Switch per call: pass the company name or id in the other tools' company parameter.",
     listCompaniesSchema, () => listCompanies());
   register(server, "list_invoices", "read",
-    "Outgoing invoices (newest first), searchable by invoice number or buyer name, paged. " +
-    "Per row: invoice number, dates, buyer, totals, paid, outstanding.",
+    "Outgoing (issued) or incoming (received) invoices, newest first, as on the Számlázz.hu invoice lists. " +
+    "Searchable by invoice number or partner name, paged. Per row: number, dates, partner, totals, paid, outstanding.",
     listInvoicesSchema, listInvoices);
   register(server, "get_invoice_data", "read",
-    "Data of an outgoing invoice by invoice number: seller, buyer, items, totals, amount paid and outstanding. Optionally the PDF too.",
+    "Data of an outgoing or incoming invoice by invoice number: seller, buyer, items, totals, amount paid and outstanding. Optionally the PDF too.",
     getInvoiceDataSchema, getInvoiceData);
   register(server, "get_invoice_pdf", "read",
-    "PDF of an existing outgoing invoice by invoice number. The PDF comes attached to the answer; nothing is saved to disk.",
+    "PDF of an outgoing or incoming invoice by invoice number (for incoming ones, generated from the invoice data). " +
+    "The PDF comes attached to the answer; nothing is saved to disk.",
     getInvoicePdfSchema, getInvoicePdf);
   register(server, "get_receipt", "read",
     "Data and PDF of a receipt by receipt number.",
