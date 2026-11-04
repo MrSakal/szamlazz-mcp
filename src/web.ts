@@ -45,6 +45,7 @@ const ALLOWED_PCAPI: ReadonlySet<string> = new Set([
   "cegfizmod/list/all",        // payment methods
   "ceg/get/me",                // own company data
   "navconnection/get/me",      // NAV Online Számla connection status
+  "banktranz/get/byid",        // one bank transaction, with its matching state
 ]);
 
 export interface WebLogin {
@@ -260,7 +261,107 @@ export async function callPcapiJson<T = Record<string, unknown>>(login: WebLogin
   }
 }
 
+// ============================================================
+// Server-rendered pages (bank transaction matching)
+// ============================================================
+//
+// The bank transaction list and its matching details live on Számlázz.hu's older, server-rendered
+// pages, not behind pcapi. Only the two calls below exist, each with fixed parameters. These pages
+// work in the company the login signed into, so they refuse a switched company.
+
+function requireCurrentCompany(login: WebLogin): void {
+  if (login.companyId !== undefined) {
+    throw new WebLoginError(
+      "Bank transaction matching is only available for the login's current company on Számlázz.hu; " +
+      "switch company there, or omit the company parameter."
+    );
+  }
+}
+
+/** One request to an old page; a lost session (sign-in page in the answer) is renewed once. */
+async function legacyRequest(login: WebLogin, path: string, init: RequestInit): Promise<string> {
+  for (const fresh of [false, true]) {
+    const s = await getSession(login, fresh);
+    const response = await sendFollowing(path, init, s.cookies);
+    const text = await response.text();
+    const signedOut = /name=["']?usrpassword/i.test(text);
+    if (response.ok && !signedOut) return text;
+    if (!fresh) continue;
+    throw new WebLoginError(`Számlázz.hu did not return the page (HTTP ${response.status}${signedOut ? ", signed out" : ""}).`);
+  }
+  throw new WebLoginError("Could not renew the Számlázz.hu web session.");
+}
+
+/**
+ * Matching details of one bank transaction: state, matched and unmatched amounts, the invoices it
+ * was matched to, and suggested invoices. operation=0 only shows; the same URL with other
+ * operation values matches, unmatches, excludes or deletes, so it is fixed here and no invoice,
+ * payment or ledger id is ever added to the URL.
+ */
+export async function getBankTransactionMatching(login: WebLogin, transactionId: number, outgoing: boolean): Promise<Record<string, unknown>> {
+  if (!Number.isSafeInteger(transactionId) || transactionId <= 0) throw new WebLoginError("Invalid bank transaction id.");
+  requireCurrentCompany(login);
+  const text = await legacyRequest(
+    login,
+    `/szamla/?ajax=banktranzj&banktranzid=${transactionId}&operation=0&szfejszerep=${outgoing ? 1 : 0}`,
+    { method: "GET", headers: { Accept: "application/json, text/javascript, */*" } },
+  );
+  try {
+    return JSON.parse(text) as Record<string, unknown>;
+  } catch {
+    throw new WebNotFoundError(`No bank transaction ${transactionId}, or Számlázz.hu changed this page.`);
+  }
+}
+
+/** The list page's state filters; each one alone narrows the list to that state. */
+const STATE_FIELDS = {
+  unmatched: "tranzactionstatus1",
+  excluded: "tranzactionstatus5",
+  partlySettled: "banktranzconsumekind0",
+  fullySettled: "banktranzconsumekind1",
+} as const;
+export type BankMatchState = keyof typeof STATE_FIELDS;
+
+export interface BankListQuery {
+  /** YYYY-MM-DD */
+  dateFrom?: string;
+  /** YYYY-MM-DD */
+  dateTo?: string;
+  /** Only transactions in this matching state. */
+  state: BankMatchState;
+  bankAccountId?: number;
+}
+
+/** "2026-10-01" -> "2026.10.01.", the form's own date format. */
+const formDate = (iso?: string) => (iso ? `${iso.replace(/-/g, ".")}.` : "");
+
+/**
+ * The bank transaction list page as HTML, for its matching columns. Sends the page's own search
+ * form (action=tranzakciolista) narrowed to one matching state. The page renders at most 200 rows.
+ */
+export async function getBankTransactionListPage(login: WebLogin, q: BankListQuery): Promise<string> {
+  requireCurrentCompany(login);
+  const form = new URLSearchParams({
+    action: "tranzakciolista",
+    limit: "1000",
+    freetext: "",
+    tranzactionstatus2: "",
+    [STATE_FIELDS[q.state]]: "on",
+    datumtol: formDate(q.dateFrom),
+    datumig: formDate(q.dateTo),
+    bankszlaid: String(q.bankAccountId ?? 0),
+    orderbytype: "0",
+    orderbydir: "false",
+  });
+  return legacyRequest(login, "/szamla/", {
+    method: "POST",
+    body: form.toString(),
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+  });
+}
+
 /** For tests: forget cached sessions. */
 export function resetWebSessions(): void {
   sessions.clear();
 }
+

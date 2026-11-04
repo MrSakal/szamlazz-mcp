@@ -25,7 +25,8 @@ It signs in with your own Számlázz.hu username and password; nothing else need
 | `list_recurring_invoices` | read | Recurring invoice schedules |
 | `list_drafts` | read | Saved invoice drafts |
 | `get_company_info` | read | Own company data, invoice defaults, number prefixes, payment methods, NAV connection state |
-| `list_bank_transactions` | read | Bank transactions for up to 366 days: amount, direction, partner, reference, value date |
+| `list_bank_transactions` | read | Bank transactions for up to 366 days with their matching state (unmatched, partly or fully settled, excluded) and unmatched amount; filter by state, e.g. what still needs matching |
+| `get_bank_transaction` | read | One transaction's matching: the invoices it settled, how and by whom, and the amount left |
 | `create_invoice` | write | Issue an invoice (normal, proforma, advance, final, correction) |
 | `reverse_invoice` | write | Reverse (storno) an invoice |
 | `register_payment` | write | Record payments on an invoice |
@@ -108,6 +109,12 @@ Restart the client, then ask: *"Which companies can my Számlázz.hu login reach
 internal endpoints its pages use (`/szamla/pcapi/...`). Only a fixed list of read-only endpoints can
 be called (`ALLOWED_PCAPI` in `src/web.ts`); everything else is refused before a request is made.
 The session lives in memory only.
+
+Bank matching comes from Számlázz.hu's older, server-rendered bank pages: the transaction list
+(its own search form, one matching state per request) and the details call behind each row. That
+call also matches, unmatches, excludes and deletes depending on an `operation` value; the server
+fixes it to `0` (show) in code and never adds invoice or payment ids to it. These pages work in the
+login's current company only.
 
 **Write tools** use the documented [Számla Agent API](https://docs.szamlazz.hu/). Its XML schemas
 accept the Számlázz.hu username and password (`felhasznalo`, `jelszo`) for sign-in, so the same

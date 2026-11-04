@@ -11,7 +11,7 @@ import { z } from "zod";
 import { errorMessage } from "./agent/client.js";
 import { loadConfig } from "./config.js";
 import { listCompaniesSchema, listCompanies } from "./tools/company.js";
-import { listBankTransactionsSchema, listBankTransactions } from "./tools/bank.js";
+import { listBankTransactionsSchema, listBankTransactions, getBankTransactionSchema, getBankTransaction } from "./tools/bank.js";
 import {
   listInvoicesSchema, listInvoices, getInvoiceDataSchema, getInvoiceData,
   getInvoicePdfSchema, getInvoicePdf, getReceiptSchema, getReceipt,
@@ -124,9 +124,14 @@ export function createServer(): McpServer {
     "Data and PDF of a receipt by receipt number.",
     getReceiptSchema, getReceipt);
   register(server, "list_bank_transactions", "read",
-    "Bank transactions for a period (id, reference, value date, amount, partner, direction). " +
-    "Read from the Számlázz.hu web interface. No matching status included.",
+    "Bank transactions for a period (id, reference, value date, amount, partner, direction), each with its matching " +
+    "state (unmatched, partlySettled, fullySettled, excluded) and unmatched amount. Filter by matchStatus, e.g. toDo for " +
+    "what still needs matching. Read from the Számlázz.hu web interface.",
     listBankTransactionsSchema, listBankTransactions);
+  register(server, "get_bank_transaction", "read",
+    "One bank transaction's matching: state, matched and unmatched amounts, the invoices it settled (number, amount, " +
+    "how it was matched, by whom) and any invoices Számlázz.hu suggests. Only for the login's current company.",
+    getBankTransactionSchema, getBankTransaction);
 
   register(server, "get_invoice_payments", "read",
     "Payments registered on an outgoing or incoming invoice: each entry's date, method, amount and who recorded it, " +
