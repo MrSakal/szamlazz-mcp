@@ -1,0 +1,35 @@
+{
+  "name": "szamlazz-mcp",
+  "version": "1.0.0",
+  "description": "MCP server for Számlázz.hu: invoices, receipts and bank transactions, signed in with your Számlázz.hu user",
+  "license": "MIT",
+  "author": "MrSakal",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MrSakal/szamlazz-mcp.git"
+  },
+  "keywords": ["mcp", "model-context-protocol", "szamlazz", "számlázz.hu", "invoice", "claude"],
+  "type": "commonjs",
+  "main": "dist/index.js",
+  "bin": {
+    "szamlazz-mcp": "dist/index.js"
+  },
+  "files": ["dist", "config.example.json"],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsc -p .",
+    "typecheck": "tsc -p . --noEmit",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.27.1",
+    "fast-xml-parser": "^5.5.4",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@types/node": "^25.5.0",
+    "typescript": "^5.9.3"
+  }
+}

@@ -1,0 +1,18 @@
+# Build and dependencies
+node_modules/
+dist/
+
+# Secrets: the real config holds the Számlázz.hu password in plain text.
+# Only config.example.json (placeholders) belongs in the repo.
+config.json
+companies.json
+*.bak
+*.tmp
+.env
+.env.*
+
+# Downloaded documents (invoices, receipts) are customer data
+*.pdf
+
+# Local Claude Code state
+.claude/
