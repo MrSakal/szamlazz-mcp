@@ -1,5 +1,5 @@
 /**
- * Számlázz.hu web session client, for data the Agent API does not offer (bank transactions).
+ * Számlázz.hu web session client, used by every read tool.
  *
  * Signs in like the browser does (POST /szamla/ with the user's web login), then calls the
  * web app's own backend (/szamla/pcapi/...) with the session cookie and the shadow-login token,
@@ -117,7 +117,7 @@ async function signIn(login: WebLogin): Promise<Session> {
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
   }, jar)).arrayBuffer();
 
-  // A successful login is proven by the web app's own shadow login, which hands out its API token.
+  // A successful login is proven by the web app's own shadow login, which hands out its session token.
   const response = await send("/szamla/pcapi/shadowlogin", {
     method: "POST",
     body: "{}",

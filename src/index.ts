@@ -9,6 +9,7 @@ import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
 
 import { errorMessage } from "./agent/client.js";
+import { loadConfig } from "./config.js";
 import { listCompaniesSchema, listCompanies } from "./tools/company.js";
 import { listBankTransactionsSchema, listBankTransactions } from "./tools/bank.js";
 import {
@@ -55,6 +56,16 @@ function toContent(json: string): CallToolResult {
   };
 }
 
+/** The configured password, so an error message can never carry it; empty when no config is readable. */
+function configuredSecrets(): string[] {
+  try {
+    const { password } = loadConfig();
+    return password ? [password] : [];
+  } catch {
+    return [];
+  }
+}
+
 function register<Shape extends z.ZodRawShape>(
   server: McpServer,
   name: string,
@@ -69,7 +80,7 @@ function register<Shape extends z.ZodRawShape>(
     try {
       return toContent(await run(params as z.infer<z.ZodObject<Shape>>));
     } catch (error) {
-      return { content: [{ type: "text", text: JSON.stringify({ error: errorMessage(error) }) }], isError: true };
+      return { content: [{ type: "text", text: JSON.stringify({ error: errorMessage(error, configuredSecrets()) }) }], isError: true };
     }
   });
 }

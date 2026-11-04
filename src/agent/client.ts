@@ -64,24 +64,25 @@ function rootElement(tree: Tree): { name: string; body: Tree } | null {
   return null;
 }
 
-const SECRET_OR_BULKY = new Set(["pdf", "nyugtaPdf", "felhasznalo", "jelszo", "szamlaagentkulcs", "kulcstartojelszo"]);
+/** Embedded PDFs (large) and the sign-in fields, in case an answer ever echoes them. */
+const LEFT_OUT = new Set(["pdf", "nyugtaPdf", "felhasznalo", "jelszo"]);
 
-/** A copy of a parsed answer without embedded PDFs or anything that could be a credential. */
+/** A copy of a parsed answer without embedded PDFs or sign-in fields. */
 export function withoutSecrets(tree: Tree): Tree {
   const walk = (value: unknown): unknown => {
     if (Array.isArray(value)) return value.map(walk);
     if (!value || typeof value !== "object") return value;
     return Object.fromEntries(
-      Object.entries(value as Tree).filter(([k]) => !SECRET_OR_BULKY.has(k)).map(([k, v]) => [k, walk(v)])
+      Object.entries(value as Tree).filter(([k]) => !LEFT_OUT.has(k)).map(([k, v]) => [k, walk(v)])
     );
   };
   return walk(tree) as Tree;
 }
 
-/** An error's message for a tool answer, with anything shaped like an API key masked. */
-export function errorMessage(error: unknown): string {
+/** An error's message for a tool answer; any of the given secrets that appears in it is masked. */
+export function errorMessage(error: unknown, secrets: string[] = []): string {
   const text = error instanceof Error ? error.message : String(error);
-  return text.replace(/\b[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}\b/gi, "[redacted]");
+  return secrets.filter((s) => s.length > 0).reduce((msg, s) => msg.split(s).join("[hidden]"), text);
 }
 
 async function post(req: AgentRequest): Promise<Response> {

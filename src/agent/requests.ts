@@ -1,8 +1,7 @@
 /**
  * Agent API request documents, built from the tools' English inputs. Element names and their
  * order follow the official Számlázz.hu XSDs (https://www.szamlazz.hu/szamla/docs/xsds/...).
- * Every request signs in with the Számlázz.hu username and password (felhasznalo, jelszo),
- * which all of these XSDs accept in place of an Agent key.
+ * Every request signs in with the Számlázz.hu username and password (felhasznalo, jelszo).
  */
 import { branch, leaf, xmlDocument, type XmlElement } from "./xml.js";
 

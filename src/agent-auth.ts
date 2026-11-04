@@ -1,7 +1,6 @@
 /**
- * Sign-in for the issuing tools (Számla Agent API). The Agent XSDs accept the Számlázz.hu
- * username + password in place of an Agent key, so the same login the read tools use works here
- * too. No Agent key is used anywhere.
+ * Sign-in for the issuing tools (Számla Agent API). Agent requests carry the same Számlázz.hu
+ * username and password the read tools use.
  */
 import { selectCompany } from "./company-select.js";
 import type { AgentLogin } from "./agent/requests.js";

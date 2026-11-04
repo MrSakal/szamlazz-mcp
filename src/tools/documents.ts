@@ -1,5 +1,5 @@
 /**
- * Read tools for invoices and receipts over the Számlázz.hu web login (no Agent key needed).
+ * Read tools for invoices and receipts, over the Számlázz.hu web interface.
  * Every call goes through the allow-listed, read-only endpoints in ../web.ts. Request and answer
  * field names of those endpoints (szfej, szlasz, kimeno, ...) are Számlázz.hu's own.
  */

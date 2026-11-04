@@ -4,7 +4,7 @@ An [MCP](https://modelcontextprotocol.io/) server that lets Claude (or any MCP c
 [Számlázz.hu](https://www.szamlazz.hu/) account: list and read invoices, fetch PDFs, read bank
 transactions, and issue, reverse or e-mail invoices and receipts.
 
-It signs in with your own Számlázz.hu username and password. No Agent API key is needed.
+It signs in with your own Számlázz.hu username and password; nothing else needs to be set up.
 
 ## Tools
 
@@ -94,7 +94,7 @@ be called (`ALLOWED_PCAPI` in `src/web.ts`); everything else is refused before a
 The session lives in memory only.
 
 **Write tools** use the documented [Számla Agent API](https://docs.szamlazz.hu/). Its XML schemas
-accept a username and password (`felhasznalo`, `jelszo`) in place of an Agent key, so the same
+accept the Számlázz.hu username and password (`felhasznalo`, `jelszo`) for sign-in, so the same
 login works. A password-signed Agent call does not say which company it is for, so the write tools
 refuse to run when the login reaches more than one company, rather than risk issuing in the wrong one.
 
