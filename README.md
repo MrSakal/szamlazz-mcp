@@ -11,7 +11,7 @@ It signs in with your own Számlázz.hu username and password; nothing else need
 | Tool | Kind | What it does |
 |---|---|---|
 | `list_companies` | read | Companies your login can work in, and which one is used by default |
-| `list_invoices` | read | Outgoing or incoming invoices, newest first; search by invoice number or partner; paid and outstanding amounts |
+| `list_invoices` | read | Issued, received or both invoices merged by date; filter by issue date, invoice number or partner; pages automatically up to a limit |
 | `get_invoice_data` | read | One outgoing or incoming invoice: seller, buyer, items, totals, paid, outstanding; optionally its PDF |
 | `get_invoice_pdf` | read | One invoice's PDF (for incoming invoices, rendered from the invoice data) |
 | `get_receipt` | read | One receipt's data, optionally its PDF |
@@ -27,8 +27,11 @@ It signs in with your own Számlázz.hu username and password; nothing else need
 Write tools are marked destructive, so MCP clients ask before running them. PDFs come back inside
 the tool answer as embedded `application/pdf` resources; the server never writes them to disk.
 
-The invoice tools take an optional `direction`: `outgoing` (default, issued invoices) or `incoming`
-(received invoices), matching the two Számlázz.hu invoice lists.
+The invoice tools take a `direction`, matching the two Számlázz.hu invoice lists: `outgoing` (issued)
+or `incoming` (received). `list_invoices` also accepts `both` (its default) and merges the two by issue
+date. It fetches page after page by itself until `limit` (default 100, max 1000) is reached and says
+with `moreAvailable` whether anything was left out; `dateFrom`/`dateTo` narrow it to a period. The
+other invoice tools default to `outgoing`.
 
 Every tool takes an optional `company` parameter: a company name (or part of it) or its Számlázz.hu
 id. Without it the login's current company is used.

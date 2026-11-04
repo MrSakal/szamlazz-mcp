@@ -115,44 +115,103 @@ async function findInvoice(login: WebLogin, invoiceNumber: string, direction: Di
 // list_invoices
 // ============================================================
 
+/** Rows fetched per backend request, as the Számlázz.hu list page does. */
+const PAGE_SIZE = 100;
+const DEFAULT_LIMIT = 100;
+const MAX_LIMIT = 1000;
+const ISO_DAY = /^\d{4}-\d{2}-\d{2}$/;
+
 export const listInvoicesSchema = z.object({
   company: companyParam,
-  direction: directionParam,
+  direction: z.enum(["both", "outgoing", "incoming"]).optional()
+    .describe("both (default): issued and received invoices merged by issue date; outgoing: issued only; incoming: received only"),
+  dateFrom: z.string().regex(ISO_DAY, "Format: YYYY-MM-DD").optional().describe("Earliest issue date, inclusive (YYYY-MM-DD)"),
+  dateTo: z.string().regex(ISO_DAY, "Format: YYYY-MM-DD").optional().describe("Latest issue date, inclusive (YYYY-MM-DD)"),
   search: z.string().optional().describe("Text to search for (invoice number or partner name, per searchBy)"),
   searchBy: z.enum(["invoiceNumber", "partner"]).optional()
     .describe("What to search: invoiceNumber (default) or partner, the other party (buyer of an outgoing invoice, issuer of an incoming one)"),
-  page: z.number().int().min(0).optional().describe("Page index from 0 (default: 0)"),
-  pageSize: z.number().int().min(1).max(100).optional().describe("Invoices per page (default: 50)"),
+  limit: z.number().int().min(1).max(MAX_LIMIT).optional()
+    .describe(`Most invoices to return in total (default ${DEFAULT_LIMIT}, max ${MAX_LIMIT}). Pages are fetched automatically until this is reached`),
   oldestFirst: z.boolean().optional().describe("true: oldest first; default: newest first (by issue date)"),
 });
 
-export async function listInvoices(params: z.infer<typeof listInvoicesSchema>): Promise<string> {
-  const direction: Direction = params.direction ?? "outgoing";
+type ListParams = z.infer<typeof listInvoicesSchema>;
+
+interface DirectionResult {
+  rows: Row[];
+  total: number | null;
+  totalIsExact: boolean;
+  /** More matching invoices exist than were fetched. */
+  more: boolean;
+}
+
+/** One direction's invoices, page after page, until `limit` rows are in hand or there are no more. */
+async function fetchDirection(login: WebLogin, direction: Direction, params: ListParams, limit: number): Promise<DirectionResult> {
   const d = BY_DIRECTION[direction];
-  const { login, company } = await selectCompany(params.company);
-  const pageSize = params.pageSize ?? 50;
-  const body: Row = {
-    kimeno: d.kimeno, page: params.page ?? 0, pageSize,
-    orderBy: { orderBy: "ORDERBY_KELTDAT", ascending: params.oldestFirst === true },
-  };
+  const filters: Row = {};
+  if (params.dateFrom || params.dateTo) filters.keltDat = { from: params.dateFrom ?? null, to: params.dateTo ?? null };
   if (params.search && params.search.trim()) {
-    const mode = params.searchBy === "partner" ? d.partnerSearchMode : "SZFEJSZLASZ";
-    body.quickSearch = { mode, value: params.search.trim() };
+    filters.quickSearch = { mode: params.searchBy === "partner" ? d.partnerSearchMode : "SZFEJSZLASZ", value: params.search.trim() };
   }
-  const answer = await callPcapiJson<{
-    items?: Array<{ szfej?: Row }>; hasNextPage?: boolean; totalSize?: { count?: number; trustworthy?: boolean };
-  }>(login, "szfej/list", body, d.listProjection);
-  const invoices = (answer.items ?? []).map((i) => i.szfej).filter((h): h is Row => !!h).map((h) => invoiceSummary(h, direction));
+
+  const rows: Row[] = [];
+  let total: number | null = null;
+  let totalIsExact = true;
+  let hasNextPage = true;
+  for (let page = 0; hasNextPage && rows.length < limit; page++) {
+    const answer = await callPcapiJson<{
+      items?: Array<{ szfej?: Row }>; hasNextPage?: boolean; totalSize?: { count?: number; trustworthy?: boolean };
+    }>(login, "szfej/list", {
+      kimeno: d.kimeno, page, pageSize: PAGE_SIZE,
+      orderBy: { orderBy: "ORDERBY_KELTDAT", ascending: params.oldestFirst === true },
+      ...filters,
+    }, d.listProjection);
+    if (page === 0) {
+      total = answer.totalSize?.count ?? null;
+      // Számlázz.hu stops counting at 2000 and then marks the count as not exact.
+      totalIsExact = answer.totalSize?.trustworthy !== false;
+    }
+    const pageRows = (answer.items ?? []).map((i) => i.szfej).filter((h): h is Row => !!h);
+    rows.push(...pageRows);
+    hasNextPage = answer.hasNextPage === true && pageRows.length > 0;
+  }
+  return { rows: rows.slice(0, limit), total, totalIsExact, more: hasNextPage || rows.length > limit };
+}
+
+export async function listInvoices(params: ListParams): Promise<string> {
+  if (params.dateFrom && params.dateTo && params.dateTo < params.dateFrom) {
+    throw new Error("dateTo cannot be earlier than dateFrom.");
+  }
+  const which = params.direction ?? "both";
+  const directions: Direction[] = which === "both" ? ["outgoing", "incoming"] : [which];
+  const limit = params.limit ?? DEFAULT_LIMIT;
+  const { login, company } = await selectCompany(params.company);
+
+  const results = await Promise.all(directions.map((dir) => fetchDirection(login, dir, params, limit)));
+  const merged = directions
+    .flatMap((dir, i) => results[i].rows.map((h) => invoiceSummary(h, dir)))
+    .sort((a, b) => {
+      const byDate = (a.issueDate ?? "").localeCompare(b.issueDate ?? "");
+      return params.oldestFirst ? byDate : -byDate;
+    });
+  const invoices = merged.slice(0, limit);
+  const more = results.some((r) => r.more) || merged.length > limit;
+
+  const counts = Object.fromEntries(directions.map((dir, i) => [dir, {
+    total: results[i].total,
+    totalIsExact: results[i].totalIsExact,
+    returned: invoices.filter((x) => x.direction === dir).length,
+  }]));
+
   return JSON.stringify({
     success: true,
     company: company.name,
-    direction,
-    total: answer.totalSize?.count ?? null,
-    // Számlázz.hu stops counting at a cap (2000) and then marks the count as not exact.
-    totalIsExact: answer.totalSize?.trustworthy !== false,
-    page: params.page ?? 0,
-    pageSize,
-    hasNextPage: answer.hasNextPage === true,
+    direction: which,
+    filter: { dateFrom: params.dateFrom, dateTo: params.dateTo, search: params.search, searchBy: params.search ? params.searchBy ?? "invoiceNumber" : undefined },
+    counts,
+    returned: invoices.length,
+    moreAvailable: more,
+    ...(more ? { note: `More invoices match than the ${invoices.length} returned: narrow the date range or the search, or raise limit (max ${MAX_LIMIT}).` } : {}),
     invoices,
   });
 }
