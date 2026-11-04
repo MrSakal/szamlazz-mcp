@@ -130,12 +130,28 @@ export const listInvoicesSchema = z.object({
   search: z.string().optional().describe("Text to search for (invoice number or partner name, per searchBy)"),
   searchBy: z.enum(["invoiceNumber", "partner"]).optional()
     .describe("What to search: invoiceNumber (default) or partner, the other party (buyer of an outgoing invoice, issuer of an incoming one)"),
+  paymentStatus: z.enum(["paid", "unpaid", "overdue"]).optional()
+    .describe("Only paid invoices (fully or overpaid), unpaid ones (not or partly paid), or overdue ones (unpaid, due date already passed)"),
   limit: z.number().int().min(1).max(MAX_LIMIT).optional()
     .describe(`Most invoices to return in total (default ${DEFAULT_LIMIT}, max ${MAX_LIMIT}). Pages are fetched automatically until this is reached`),
   oldestFirst: z.boolean().optional().describe("true: oldest first; default: newest first (by issue date)"),
 });
 
 type ListParams = z.infer<typeof listInvoicesSchema>;
+
+/** Payment states as the Számlázz.hu list views use them (fizetettsegList). */
+const PAYMENT_STATES = {
+  paid: ["FIZETETT", "TULFIZETETT"],
+  unpaid: ["NEM_FIZETETT", "RESZBEN_FIZETETT"],
+  overdue: ["NEM_FIZETETT", "RESZBEN_FIZETETT"],
+} as const;
+
+/** Yesterday as YYYY-MM-DD in local time: "overdue" means the due date is before today. */
+function yesterday(): string {
+  const d = new Date();
+  d.setDate(d.getDate() - 1);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
 
 interface DirectionResult {
   rows: Row[];
@@ -150,6 +166,10 @@ async function fetchDirection(login: WebLogin, direction: Direction, params: Lis
   const d = BY_DIRECTION[direction];
   const filters: Row = {};
   if (params.dateFrom || params.dateTo) filters.keltDat = { from: params.dateFrom ?? null, to: params.dateTo ?? null };
+  if (params.paymentStatus) {
+    filters.fizetettsegList = [...PAYMENT_STATES[params.paymentStatus]];
+    if (params.paymentStatus === "overdue") filters.fizHDat = { from: null, to: yesterday() };
+  }
   if (params.search && params.search.trim()) {
     filters.quickSearch = { mode: params.searchBy === "partner" ? d.partnerSearchMode : "SZFEJSZLASZ", value: params.search.trim() };
   }
@@ -207,7 +227,7 @@ export async function listInvoices(params: ListParams): Promise<string> {
     success: true,
     company: company.name,
     direction: which,
-    filter: { dateFrom: params.dateFrom, dateTo: params.dateTo, search: params.search, searchBy: params.search ? params.searchBy ?? "invoiceNumber" : undefined },
+    filter: { dateFrom: params.dateFrom, dateTo: params.dateTo, paymentStatus: params.paymentStatus, search: params.search, searchBy: params.search ? params.searchBy ?? "invoiceNumber" : undefined },
     counts,
     returned: invoices.length,
     moreAvailable: more,

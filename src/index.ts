@@ -99,7 +99,8 @@ export function createServer(): McpServer {
     listCompaniesSchema, () => listCompanies());
   register(server, "list_invoices", "read",
     "Invoices from the Számlázz.hu invoice lists: issued (outgoing), received (incoming) or both merged by issue date, " +
-    "newest first. Filter by issue date range and by invoice number or partner name. Pages are fetched automatically up to " +
+    "newest first. Filter by issue date range, payment status (paid, unpaid, overdue) and invoice number or partner name. " +
+    "Pages are fetched automatically up to " +
     "limit; moreAvailable says whether anything was left out. Per row: direction, number, dates, partner, totals, paid, " +
     "outstanding. For a period, pass dateFrom/dateTo rather than raising limit.",
     listInvoicesSchema, listInvoices);

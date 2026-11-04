@@ -11,7 +11,7 @@ It signs in with your own Számlázz.hu username and password; nothing else need
 | Tool | Kind | What it does |
 |---|---|---|
 | `list_companies` | read | Companies your login can work in, and which one is used by default |
-| `list_invoices` | read | Issued, received or both invoices merged by date; filter by issue date, invoice number or partner; pages automatically up to a limit |
+| `list_invoices` | read | Issued, received or both invoices merged by date; filter by issue date, payment status (paid, unpaid, overdue), invoice number or partner; pages automatically up to a limit |
 | `get_invoice_data` | read | One outgoing or incoming invoice: seller, buyer, items, totals, paid, outstanding; optionally its PDF |
 | `get_invoice_pdf` | read | One invoice's PDF (for incoming invoices, rendered from the invoice data) |
 | `get_receipt` | read | One receipt's data, optionally its PDF |
