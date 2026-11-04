@@ -1,8 +1,9 @@
 # szamlazz-mcp
 
 An [MCP](https://modelcontextprotocol.io/) server that lets Claude (or any MCP client) work with your
-[Számlázz.hu](https://www.szamlazz.hu/) account: list and read invoices, fetch PDFs, read bank
-transactions, and issue, reverse or e-mail invoices and receipts.
+[Számlázz.hu](https://www.szamlazz.hu/) account: issued and received invoices with their payments and
+PDFs, partners, products, receipts, bank transactions and turnover reports, and issuing, reversing or
+e-mailing invoices and receipts.
 
 It signs in with your own Számlázz.hu username and password; nothing else needs to be set up.
 
@@ -14,7 +15,16 @@ It signs in with your own Számlázz.hu username and password; nothing else need
 | `list_invoices` | read | Issued, received or both invoices merged by date; filter by issue date, payment status (paid, unpaid, overdue), invoice number or partner; pages automatically up to a limit |
 | `get_invoice_data` | read | One outgoing or incoming invoice: seller, buyer, items, totals, paid, outstanding; optionally its PDF |
 | `get_invoice_pdf` | read | One invoice's PDF (for incoming invoices, rendered from the invoice data) |
+| `get_invoice_payments` | read | Payments registered on an invoice: date, method, amount, who recorded it |
+| `get_invoice_activity` | read | NAV Online Számla and accounting-system submissions, e-mails sent, payment reminders |
+| `turnover_report` | read | Issued documents in a period (the Forgalom report): item rows, totals per currency and VAT rate |
+| `list_partners` / `get_partner` | read | Partner records: name, address, e-mail; tax number and payment terms for one |
+| `list_products` | read | Products and services: name, net unit price, unit, VAT rate |
+| `list_receipts` | read | Issued receipts |
 | `get_receipt` | read | One receipt's data, optionally its PDF |
+| `list_recurring_invoices` | read | Recurring invoice schedules |
+| `list_drafts` | read | Saved invoice drafts |
+| `get_company_info` | read | Own company data, invoice defaults, number prefixes, payment methods, NAV connection state |
 | `list_bank_transactions` | read | Bank transactions for up to 366 days: amount, direction, partner, reference, value date |
 | `create_invoice` | write | Issue an invoice (normal, proforma, advance, final, correction) |
 | `reverse_invoice` | write | Reverse (storno) an invoice |

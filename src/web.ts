@@ -27,6 +27,24 @@ const ALLOWED_PCAPI: ReadonlySet<string> = new Set([
   "nyfej/list/all",            // receipt list / search by number
   "nyfej/get/byid",            // receipt data
   "nyfej/getpdf/byid",         // receipt PDF
+  "szfejjovair/list/byid",     // payments registered on an invoice
+  "szfej/jovairsummary/byid",  // payment summary of an invoice
+  "szfejaccsys/list/byszfejid", // NAV / accounting-system submissions of an invoice
+  "szfejsend/list/byszfejid",  // e-mails sent with an invoice
+  "fizker/list/byszfejid",     // payment reminders sent for an invoice
+  "szfej/afaanalitika/byinterval", // VAT analytics of invoices (CSV)
+  "nyfej/afaanalitika/byinterval", // VAT analytics of receipts (CSV)
+  "szfej/forgalmilista/byinterval", // turnover report (CSV)
+  "partner/list/bykey",        // partner list / search
+  "partner/get/byid",          // one partner
+  "cikk/list/bykey",           // product list / search
+  "cikk/get/byid",             // one product
+  "szfejrepeat/list/bykey",    // recurring invoices
+  "piszkozat/list/bykey",      // drafts
+  "szamlatomb/list/all",       // invoice number prefixes
+  "cegfizmod/list/all",        // payment methods
+  "ceg/get/me",                // own company data
+  "navconnection/get/me",      // NAV Online Számla connection status
 ]);
 
 export interface WebLogin {

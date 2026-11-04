@@ -17,6 +17,15 @@ import {
   getInvoicePdfSchema, getInvoicePdf, getReceiptSchema, getReceipt,
 } from "./tools/documents.js";
 import {
+  getInvoicePaymentsSchema, getInvoicePayments, getInvoiceActivitySchema, getInvoiceActivity,
+  turnoverReportSchema, turnoverReport,
+} from "./tools/invoice-extra.js";
+import {
+  listPartnersSchema, listPartners, getPartnerSchema, getPartner, listProductsSchema, listProducts,
+  listReceiptsSchema, listReceipts, listRecurringInvoicesSchema, listRecurringInvoices,
+  listDraftsSchema, listDrafts, getCompanyInfoSchema, getCompanyInfo,
+} from "./tools/records.js";
+import {
   createInvoiceSchema, createInvoice, reverseInvoiceSchema, reverseInvoice,
   registerPaymentSchema, registerPayment, deleteProformaSchema, deleteProforma,
 } from "./tools/invoice.js";
@@ -118,6 +127,41 @@ export function createServer(): McpServer {
     "Bank transactions for a period (id, reference, value date, amount, partner, direction). " +
     "Read from the Számlázz.hu web interface. No matching status included.",
     listBankTransactionsSchema, listBankTransactions);
+
+  register(server, "get_invoice_payments", "read",
+    "Payments registered on an outgoing or incoming invoice: each entry's date, method, amount and who recorded it, " +
+    "plus gross, paid and outstanding amounts.",
+    getInvoicePaymentsSchema, getInvoicePayments);
+  register(server, "get_invoice_activity", "read",
+    "What happened to an invoice after issue: NAV Online Számla (and other system) submissions with their status, " +
+    "e-mails sent with it, and payment reminders.",
+    getInvoiceActivitySchema, getInvoiceActivity);
+  register(server, "turnover_report", "read",
+    "Turnover of documents this company issued in a period (the Számlázz.hu Forgalom report): item rows plus totals " +
+    "per currency and per VAT rate. Filter by document type, buyer or product. Received invoices are not included.",
+    turnoverReportSchema, turnoverReport);
+  register(server, "list_partners", "read",
+    "Partners (customers and suppliers) saved in Számlázz.hu: name, address, e-mail. Searchable; pages automatically.",
+    listPartnersSchema, listPartners);
+  register(server, "get_partner", "read",
+    "One partner's full record by name or partnerId: tax number, addresses, e-mail, default payment terms.",
+    getPartnerSchema, getPartner);
+  register(server, "list_products", "read",
+    "Products and services saved in Számlázz.hu: name, net unit price, unit, VAT rate. Searchable; pages automatically.",
+    listProductsSchema, listProducts);
+  register(server, "list_receipts", "read",
+    "Issued receipts: number, date, amounts, payment method, reversal state. Searchable; pages automatically.",
+    listReceiptsSchema, listReceipts);
+  register(server, "list_recurring_invoices", "read",
+    "Recurring invoice schedules set up in Számlázz.hu, with their original invoice and last run.",
+    listRecurringInvoicesSchema, listRecurringInvoices);
+  register(server, "list_drafts", "read",
+    "Saved invoice drafts: name, buyer, amounts, when saved.",
+    listDraftsSchema, listDrafts);
+  register(server, "get_company_info", "read",
+    "The company's own data and invoicing setup: name, tax numbers, address, default payment terms and currency, " +
+    "invoice number prefixes, payment methods, and whether NAV Online Számla is connected. Useful before create_invoice.",
+    getCompanyInfoSchema, getCompanyInfo);
 
   // Writes: each one changes real accounting documents
   register(server, "create_invoice", "write",

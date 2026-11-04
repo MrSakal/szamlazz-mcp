@@ -10,10 +10,10 @@ import { handlePdf, type PdfResult } from "../config.js";
 import { callPcapiJson, callPcapiRaw, WebNotFoundError, type WebLogin } from "../web.js";
 
 type Row = Record<string, unknown>;
-type Direction = "outgoing" | "incoming";
+export type Direction = "outgoing" | "incoming";
 
 /** What the backend needs per direction: the projections and endpoints the web app itself uses. */
-const BY_DIRECTION = {
+export const BY_DIRECTION = {
   outgoing: {
     kimeno: true,
     listProjection: {
@@ -50,11 +50,11 @@ const BY_DIRECTION = {
 const RECEIPT_LIST_PROJECTION = { items: { nyfej: "list" }, hasNextPage: "all", totalSize: "all" };
 const RECEIPT_PROJECTION = { nyfej: "all" };
 
-const directionParam = z.enum(["outgoing", "incoming"]).optional()
+export const directionParam = z.enum(["outgoing", "incoming"]).optional()
   .describe("outgoing: invoices this company issued (default); incoming: invoices it received");
 
-const num = (v: unknown): number | null => (typeof v === "number" && Number.isFinite(v) ? v : null);
-const str = (v: unknown): string | undefined => (typeof v === "string" && v !== "" ? v : undefined);
+export const num = (v: unknown): number | null => (typeof v === "number" && Number.isFinite(v) ? v : null);
+export const str = (v: unknown): string | undefined => (typeof v === "string" && v !== "" ? v : undefined);
 const round2 = (n: number) => Math.round(n * 100) / 100;
 const sameNo = (a: unknown, b: string) => typeof a === "string" && a.trim().toUpperCase() === b.trim().toUpperCase();
 
@@ -97,7 +97,7 @@ function invoiceSummary(h: Row, direction: Direction) {
 // Invoice lookup by number
 // ============================================================
 
-async function findInvoice(login: WebLogin, invoiceNumber: string, direction: Direction): Promise<Row> {
+export async function findInvoice(login: WebLogin, invoiceNumber: string, direction: Direction): Promise<Row> {
   const d = BY_DIRECTION[direction];
   const answer = await callPcapiJson<{ items?: Array<{ szfej?: Row }> }>(login, "szfej/list", {
     kimeno: d.kimeno, page: 0, pageSize: 20,
